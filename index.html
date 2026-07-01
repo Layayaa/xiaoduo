@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>客服自动回复质检工具</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #18202f;
+      --muted: #5f6b7a;
+      --line: #d9dee7;
+      --blue: #2266d8;
+      --green: #16845b;
+      --amber: #b06a00;
+      --red: #c4362e;
+      --soft-blue: #e9f1ff;
+      --soft-red: #fff0ee;
+      --soft-amber: #fff6e5;
+      --soft-green: #eaf7f1;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .wrap {
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 20px 0;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    a, button {
+      font: inherit;
+    }
+
+    .link-button,
+    button {
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 11px;
+      text-decoration: none;
+      cursor: pointer;
+      min-height: 38px;
+    }
+
+    button.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #ffffff;
+    }
+
+    button:focus,
+    a:focus,
+    textarea:focus,
+    select:focus {
+      outline: 2px solid #7aa7ff;
+      outline-offset: 2px;
+    }
+
+    main {
+      padding: 22px 0 36px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 92px;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .metric .value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .metric .hint {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: minmax(340px, 0.95fr) minmax(420px, 1.05fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin: 14px 0 6px;
+    }
+
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #ffffff;
+      color: var(--text);
+      padding: 10px;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 118px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .result-head {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .score-ring {
+      width: 116px;
+      height: 116px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at center, #fff 0 56%, transparent 57%),
+        conic-gradient(var(--red) 0deg, var(--red) 214deg, #e5e7eb 214deg);
+      border: 1px solid var(--line);
+    }
+
+    .score-ring strong {
+      font-size: 28px;
+    }
+
+    .decision {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .decision.fail { background: var(--soft-red); color: var(--red); }
+    .decision.needs_review { background: var(--soft-amber); color: var(--amber); }
+    .decision.pass { background: var(--soft-green); color: var(--green); }
+
+    .reason {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .score-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .score-row {
+      display: grid;
+      grid-template-columns: 150px 1fr 48px;
+      gap: 10px;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #e6eaf0;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      width: 0%;
+      background: var(--blue);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      background: #eef2f7;
+      color: #334155;
+      padding: 6px 9px;
+      font-size: 12px;
+    }
+
+    .batch {
+      margin-top: 16px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f1f4f8;
+      color: #334155;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .step {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .step span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 920px) {
+      .topbar,
+      .tool-grid,
+      .pipeline {
+        grid-template-columns: 1fr;
+      }
+
+      .links {
+        justify-content: flex-start;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .score-row {
+        grid-template-columns: 1fr;
+      }
+
+      .result-head {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap topbar">
+      <div>
+        <h1>自动回复质量评估流水线</h1>
+        <p class="subtitle">原题交互查看页：用于单条试评和 20 条样例结果浏览。正式交付说明见 README，批量报告见 outputs。</p>
+      </div>
+      <nav class="links" aria-label="相关文件">
+        <a class="link-button" href="README.md">README</a>
+        <a class="link-button" href="outputs/evaluation_report.html">批量报告</a>
+        <a class="link-button" href="outputs/case_scores.csv">CSV</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="pipeline" aria-label="输入处理输出">
+      <div class="step">
+        <strong>输入</strong>
+        <span>来自题目文件：用户问题、自动回复、业务评估标准。human_ref 只用于验证。</span>
+      </div>
+      <div class="step">
+        <strong>处理</strong>
+        <span>独立 mock judge 按准确、有用、语气好、不能瞎编和是否可放行评分。</span>
+      </div>
+      <div class="step">
+        <strong>输出</strong>
+        <span>总分、pass / needs_review / fail、问题类型、批量分布和最差 case。</span>
+      </div>
+    </section>
+
+    <section class="summary-grid" id="summaryGrid" aria-label="批量摘要"></section>
+
+    <section class="tool-grid">
+      <div class="panel">
+        <h2>单条试评</h2>
+        <label for="caseSelect">选择样例</label>
+        <select id="caseSelect"></select>
+
+        <label for="questionInput">用户问题</label>
+        <textarea id="questionInput"></textarea>
+
+        <label for="replyInput">自动回复</label>
+        <textarea id="replyInput"></textarea>
+
+        <div class="actions">
+          <button class="primary" id="scoreButton">立即评分</button>
+          <button id="resetButton">恢复样例</button>
+          <button id="clearButton">清空输入</button>
+        </div>
+      </div>
+
+      <div class="panel" aria-live="polite">
+        <h2>评分输出</h2>
+        <div class="result-head">
+          <div class="score-ring" id="scoreRing"><strong id="overallScore">0</strong></div>
+          <div>
+            <span id="decisionBadge" class="decision fail">fail</span>
+            <p class="reason" id="judgeReason"></p>
+          </div>
+        </div>
+        <div class="score-list" id="scoreList"></div>
+        <div class="chips" id="issueChips"></div>
+      </div>
+    </section>
+
+    <section class="panel batch">
+      <h2>20 条自动回复评分结果</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>case</th>
+              <th>overall</th>
+              <th>decision</th>
+              <th>用户问题</th>
+              <th>问题类型</th>
+              <th>原因</th>
+            </tr>
+          </thead>
+          <tbody id="batchBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const samples = [
+      { id: "case_01", user_question: "我的快递到了但是放错快递柜了，取不出来", auto_reply: "您好，如果快递放错了快递柜，您可以尝试联系快递员重新派送，或者到放错的快递柜去取。建议您先查看取件码确认具体位置。如果无法解决，请联系我们的客服，我们会协助您处理。" },
+      { id: "case_02", user_question: "这个充电宝能带上飞机吗", auto_reply: "您好，关于充电宝是否能带上飞机，根据民航局规定，额定能量不超过100Wh的充电宝可以随身携带上飞机，但不能托运。建议您查看充电宝的额定容量标识。如有疑问，请咨询具体航空公司。" },
+      { id: "case_03", user_question: "退款什么时候能到账", auto_reply: "退款到账时间取决于退款方式和银行处理速度。一般情况下：原路退回（支付宝/微信）1-3个工作日，银行卡退款3-7个工作日，信用卡退款5-15个工作日。您可以在订单详情页查看退款进度。如果超时未到账，请联系客服。" },
+      { id: "case_04", user_question: "我买的蓝牙耳机左耳没声音了，才买三天", auto_reply: "抱歉给您带来不便。蓝牙耳机出现单侧无声的情况，建议您尝试以下操作：1.将耳机放回充电盒重新配对 2.检查手机蓝牙设置中是否有单声道选项 3.尝试重启耳机。如果问题仍然存在，由于在7天质保期内，您可以申请退货退款或换新。" },
+      { id: "case_05", user_question: "你们客服态度太差了等了20分钟都没人理我", auto_reply: "非常抱歉让您久等了，给您带来了不好的体验。我们非常重视每一位客户的感受。请问您遇到了什么问题？我现在就帮您处理。同时我们会加强客服团队的培训，避免类似情况再次发生。" },
+      { id: "case_06", user_question: "优惠券怎么用不了", auto_reply: "您好，优惠券无法使用可能有以下原因：1.未达到使用门槛金额 2.商品不在优惠券适用范围内 3.优惠券已过期 4.优惠券已使用过。请您检查优惠券的使用规则。如果确认符合使用条件仍无法使用，请联系客服核实。" },
+      { id: "case_07", user_question: "我收到短信说账号异地登录了是真的吗", auto_reply: "您好，异地登录提醒可能是真实的也可能是诈骗短信。请您先不要点击短信中的任何链接。建议您：1.直接登录我们的官方网站或APP查看登录记录 2.修改密码 3.开启二次验证功能。如果确认存在异常登录，请立即联系客服冻结账号。" },
+      { id: "case_08", user_question: "这个手机壳是硅胶的还是塑料的", auto_reply: "您好，这款手机壳采用的是TPU软胶材质，具有较好的防摔性能和手感。如果您需要更具体的材质信息，可以查看商品详情页的参数说明，或联系客服获取。" },
+      { id: "case_09", user_question: "退货邮费谁出", auto_reply: "退货运费承担规则如下：质量问题导致的退货，运费由商家承担；非质量问题（如不喜欢、买错了等）的退货，运费由买家承担。具体判定标准请参考我们的退换货政策。如有疑问请联系客服。" },
+      { id: "case_10", user_question: "刚下单还没发货能取消吗", auto_reply: "您好，订单未发货前可以申请取消。请您在订单详情页操作，或联系客服协助处理。取消后款项会在1-3个工作日退回原支付方式。" },
+      { id: "case_11", user_question: "买了两件衣服一件大了一件小了想换尺码", auto_reply: "您好，换货需要先退货再重新下单选择正确尺码。请分别发起两件商品的换货申请，按照退货地址寄回原商品，我们收到后会发出新尺码的商品。换货运费由买家承担。" },
+      { id: "case_12", user_question: "快递两天没更新了", auto_reply: "物流信息长时间未更新可能是以下原因：1.包裹正在中转途中 2.快递公司信息更新延迟 3.包裹可能出现问题。建议您耐心等待1-2天，如果仍未更新，请联系快递公司查询或联系我们的客服协助跟进。" },
+      { id: "case_13", user_question: "我买的面膜成分表能发给我看看吗我皮肤敏感", auto_reply: "您好，面膜的成分表可以在商品详情页查看。如果您对特定成分过敏，建议您在购买前仔细核对成分表，或先购买小样进行皮肤测试。如需更详细的成分信息，可以联系品牌官方客服。" },
+      { id: "case_14", user_question: "你们能不能加个功能下单前能看实物视频", auto_reply: "感谢您的宝贵建议！我们会将您的反馈转达给产品团队。目前部分商品已支持视频展示，您可以在商品详情页查看是否有视频标识。如果您有特定商品需要看实物，可以联系客服，我们会尽力协助。" },
+      { id: "case_15", user_question: "我上次买的东西收到是坏的这次又是坏的", auto_reply: "非常抱歉连续给您带来不好的体验。我们高度重视商品质量问题。请您先申请退货退款，退货运费由我们承担。同时我们会将您的情况反馈给品控部门，加强对该类商品的质量检查。如有需要，可以申请额外的补偿优惠券。" },
+      { id: "case_16", user_question: "你们首页推荐的那两款手机哪个好", auto_reply: "您好，不同手机各有优势，适合的需求也不同。如果您能告诉我具体的使用场景和预算，我可以帮您推荐更合适的选择。您也可以查看商品详情页的用户评价和参数对比来做决策。" },
+      { id: "case_17", user_question: "我那个退货的事顺便看看快递到没到", auto_reply: "您好，关于您的两个问题：1.退货进度请在订单详情页查看 2.快递进度可以在物流追踪页面查看。如果您能提供具体的订单号，我可以帮您查询更详细的信息。" },
+      { id: "case_18", user_question: "那个扫地机器人用了两周就不工作了", auto_reply: "抱歉给您带来不便。扫地机器人使用两周就出现故障，属于质量问题。您的订单在30天质保期内，可以选择退货退款或者换新。请按照退货地址寄回商品，退货运费由我们承担。如有其他问题请联系客服。" },
+      { id: "case_19", user_question: "我要买的那个包什么时候补货", auto_reply: "您好，商品补货时间不固定，建议您关注商品页面或联系客服询问预计到货时间。您也可以将商品加入购物车，补货时系统会自动提醒您。如果长时间未补货，可以考虑查看类似的替代商品。" },
+      { id: "case_20", user_question: "退货流程太复杂了搞半天都不知道怎么操作", auto_reply: "抱歉给您带来困扰。退货流程一般包括：1.在订单页面点击退货 2.选择退货原因 3.提交申请等待审核 4.按照退货地址寄回商品。如果您在某个环节遇到问题，可以截图发给客服，我们会协助您操作。" }
+    ];
+
+    const weights = {
+      problem_fit: 0.25,
+      resolution_helpfulness: 0.25,
+      context_awareness: 0.20,
+      tone_empathy: 0.15,
+      automation_readiness: 0.15
+    };
+
+    const labels = {
+      problem_fit: "问题匹配度",
+      resolution_helpfulness: "解决有用性",
+      context_awareness: "上下文核实",
+      tone_empathy: "语气安抚",
+      automation_readiness: "可放行度"
+    };
+
+    const empathyTerms = ["抱歉", "不好意思", "理解", "感谢", "久等", "困扰", "不便", "请放心"];
+    const actionTerms = ["请", "提供", "订单号", "账号", "截图", "确认", "申请", "提交", "修改密码", "开启二次验证", "取消", "换新", "退货退款"];
+    const proactiveTerms = ["我帮您", "我来帮", "直接帮您", "帮您查", "帮您处理", "帮您确认", "帮您联系", "协助您", "记录下来"];
+    const selfServicePatterns = [
+      /您可以尝试/, /建议您尝试/, /尝试以下操作/, /建议您.{0,12}查看/, /您可以在订单详情页/,
+      /查看商品详情页/, /查看订单详情/, /查看物流/, /请联系客服/, /联系快递公司/, /联系快递员/,
+      /咨询具体航空公司/, /参考.{0,8}政策/, /耐心等待/, /按照退货地址/, /流程一般包括/, /到.{0,8}去取/, /自己/
+    ];
+    const riskyPatterns = [/保证/, /绝对/, /一定(?:会|能)/, /马上到账/, /无需核实/, /不用验证/, /密码发给/, /身份证.*发给/, /银行卡.*发给/];
+    const genericPatterns = [/可能有以下原因/, /一般情况下/, /规则如下/, /建议您.*查看/, /如有疑问/];
+
+    const contextNeeds = [
+      { key: "order_lookup", label: "需要订单/售后状态核实", q: [/退款/, /取消/, /退货/, /换.{0,3}尺码/, /买.{0,6}三天/, /用了两周/, /坏/, /没声音/], r: [/订单号/, /我帮您查/, /我帮您处理/, /申请/, /换新/, /退货退款/, /质保/] },
+      { key: "logistics_lookup", label: "需要物流/库存状态核实", q: [/快递/, /物流/, /补货/, /到了/, /没更新/, /取不出来/], r: [/订单号/, /物流/, /我帮您查/, /帮您联系/, /快递公司/, /提醒/] },
+      { key: "account_security", label: "需要账号安全核实", q: [/账号/, /异地登录/, /短信/], r: [/不要点击/, /登录记录/, /修改密码/, /二次验证/, /冻结/, /账号/] },
+      { key: "product_attribute", label: "需要商品参数/具体商品核实", q: [/这个/, /这款/, /材质/, /成分/, /手机壳/, /充电宝/, /面膜/, /哪.{0,3}好/, /包/], r: [/这款/, /额定/, /材质/, /成分/, /参数/, /哪款/, /预算/, /使用场景/] },
+      { key: "complaint", label: "需要投诉安抚和人工兜底", q: [/态度太差/, /没人理/, /又是坏/, /太复杂/, /搞半天/, /不工作/], r: [/直接帮您/, /我帮您/, /补偿/, /卡在哪/, /一步步/, /不用再等/, /原来的问题/, /倾向哪种/] }
+    ];
+
+    function hasAny(text, patterns) {
+      return patterns.some(pattern => pattern.test(text));
+    }
+
+    function countTerms(text, terms) {
+      return terms.filter(term => text.includes(term)).length;
+    }
+
+    function countPatterns(text, patterns) {
+      return patterns.filter(pattern => pattern.test(text)).length;
+    }
+
+    function clampScore(score) {
+      return Math.max(1, Math.min(5, Math.round(score)));
+    }
+
+    function scoreTo100(score) {
+      return score * 20;
+    }
+
+    function detectNeeds(question) {
+      return contextNeeds.filter(need => hasAny(question, need.q));
+    }
+
+    function coveredNeed(reply, need) {
+      return hasAny(reply, need.r);
+    }
+
+    function detectIssues(question, reply) {
+      const needs = detectNeeds(question);
+      const uncovered = needs.filter(need => !coveredNeed(reply, need));
+      const selfServiceHits = countPatterns(reply, selfServicePatterns);
+      const proactiveHits = countTerms(reply, proactiveTerms);
+      const riskyHits = countPatterns(reply, riskyPatterns);
+      const genericHits = countPatterns(reply, genericPatterns);
+      const asksKeyInfo = hasAny(reply, [/订单号/, /账号/, /哪款/, /哪两款/, /具体/, /预算/, /使用场景/, /卡在哪/, /倾向哪种/]);
+      const issues = [];
+      if (genericHits >= 1) issues.push("generic_answer");
+      if (uncovered.length) issues.push("no_lookup");
+      if (selfServiceHits > proactiveHits) issues.push("push_to_user");
+      if (uncovered.some(need => ["product_attribute", "order_lookup", "logistics_lookup"].includes(need.key))) issues.push("missing_clarification");
+      if (needs.some(need => ["complaint", "account_security"].includes(need.key)) && countTerms(reply, empathyTerms) === 0) issues.push("weak_empathy");
+      if (needs.some(need => need.key === "complaint") && !asksKeyInfo) issues.push("missing_clarification");
+      if (riskyHits) issues.push("hallucination_risk");
+      return [...new Set(issues)].sort();
+    }
+
+    function evaluateCase(question, reply) {
+      const needs = detectNeeds(question);
+      const covered = needs.filter(need => coveredNeed(reply, need));
+      const uncovered = needs.filter(need => !coveredNeed(reply, need));
+      const hasComplaintNeed = needs.some(need => need.key === "complaint");
+      const hasProductNeed = needs.some(need => need.key === "product_attribute");
+      const hasOrderOrLogisticsNeed = needs.some(need => ["order_lookup", "logistics_lookup"].includes(need.key));
+
+      const empathyHits = countTerms(reply, empathyTerms);
+      const actionHits = countTerms(reply, actionTerms);
+      const proactiveHits = countTerms(reply, proactiveTerms);
+      const selfServiceHits = countPatterns(reply, selfServicePatterns);
+      const riskyHits = countPatterns(reply, riskyPatterns);
+      const genericHits = countPatterns(reply, genericPatterns);
+      const asksKeyInfo = hasAny(reply, [/订单号/, /账号/, /哪款/, /哪两款/, /具体/, /预算/, /使用场景/, /卡在哪/, /倾向哪种/]);
+
+      let problemFit = 3.2;
+      if (!needs.length) problemFit += 0.3;
+      problemFit += Math.min(covered.length, 2) * 0.6;
+      problemFit -= Math.min(uncovered.length, 2) * 0.9;
+      problemFit -= Math.min(genericHits, 2) * 0.4;
+      if (hasComplaintNeed && !asksKeyInfo && proactiveHits === 0) problemFit -= 0.8;
+      if (hasProductNeed && selfServiceHits && !asksKeyInfo) problemFit -= 0.5;
+
+      let helpfulness = 2.4 + Math.min(actionHits, 4) * 0.25 + Math.min(proactiveHits, 2) * 0.8;
+      if (asksKeyInfo) helpfulness += 0.4;
+      helpfulness -= Math.min(selfServiceHits, 3) * 0.55;
+      helpfulness -= Math.min(uncovered.length, 2) * 0.5;
+      if (hasComplaintNeed && proactiveHits === 0) helpfulness -= 0.9;
+      if (hasOrderOrLogisticsNeed && genericHits && !asksKeyInfo) helpfulness -= 0.6;
+
+      let contextAwareness = 3.4;
+      if (needs.length && (covered.length || asksKeyInfo)) contextAwareness += 0.9;
+      if (needs.length && !covered.length && !asksKeyInfo) contextAwareness -= 1.2;
+      contextAwareness -= riskyHits * 1.4;
+      contextAwareness -= Math.max(0, genericHits - 1) * 0.3;
+      if (hasComplaintNeed && !asksKeyInfo) contextAwareness -= 0.5;
+
+      let tone = 3.0 + Math.min(empathyHits, 3) * 0.55 + Math.min(proactiveHits, 2) * 0.3;
+      if (needs.some(need => ["complaint", "account_security"].includes(need.key)) && empathyHits === 0) tone -= 0.9;
+      tone -= Math.min(selfServiceHits, 2) * 0.25;
+      if (hasComplaintNeed && proactiveHits === 0) tone -= 0.4;
+
+      let readiness = 3.1;
+      readiness += Math.min(covered.length, 2) * 0.4 + Math.min(proactiveHits, 2) * 0.35;
+      readiness -= Math.min(uncovered.length, 2) * 0.75;
+      readiness -= Math.min(selfServiceHits, 3) * 0.35;
+      readiness -= riskyHits * 1.5;
+      if (hasComplaintNeed) readiness -= 0.8;
+      if (hasComplaintNeed && !asksKeyInfo && proactiveHits === 0) readiness -= 0.8;
+
+      const scores1to5 = {
+        problem_fit: clampScore(problemFit),
+        resolution_helpfulness: clampScore(helpfulness),
+        context_awareness: clampScore(contextAwareness),
+        tone_empathy: clampScore(tone),
+        automation_readiness: clampScore(readiness)
+      };
+      const scores = Object.fromEntries(Object.entries(scores1to5).map(([key, value]) => [key, scoreTo100(value)]));
+      const overall = Math.round(Object.entries(weights).reduce((sum, [key, weight]) => sum + scores[key] * weight, 0));
+      const issues = detectIssues(question, reply);
+      const decision = overall >= 80 && !issues.length ? "pass" : overall >= 65 && !issues.includes("hallucination_risk") ? "needs_review" : "fail";
+
+      const reasons = [];
+      if (uncovered.length) reasons.push("需要核实的信息未覆盖：" + uncovered.map(need => need.label).join("、"));
+      if (selfServiceHits > proactiveHits) reasons.push("回复偏自助说明，把操作负担留给用户");
+      if (genericHits) reasons.push("回复偏通用解释，缺少针对当前 case 的判断");
+      if (riskyHits) reasons.push("存在过度承诺或安全合规风险");
+      if (!reasons.length) reasons.push("核心诉求、下一步和风险边界基本覆盖");
+
+      return {
+        scores,
+        overall,
+        decision,
+        issues,
+        needs: needs.map(need => need.label),
+        reason: reasons.join("；")
+      };
+    }
+
+    function decisionLabel(decision) {
+      return {
+        pass: "pass 可自动放行",
+        needs_review: "needs_review 需抽检",
+        fail: "fail 人工兜底"
+      }[decision];
+    }
+
+    function renderScore(result) {
+      const color = result.decision === "pass" ? "var(--green)" : result.decision === "needs_review" ? "var(--amber)" : "var(--red)";
+      const deg = Math.round(result.overall / 100 * 360);
+      document.getElementById("scoreRing").style.background = `radial-gradient(circle at center, #fff 0 56%, transparent 57%), conic-gradient(${color} 0deg, ${color} ${deg}deg, #e5e7eb ${deg}deg)`;
+      document.getElementById("overallScore").textContent = result.overall;
+      const badge = document.getElementById("decisionBadge");
+      badge.className = `decision ${result.decision}`;
+      badge.textContent = decisionLabel(result.decision);
+      document.getElementById("judgeReason").textContent = result.reason;
+
+      const scoreList = document.getElementById("scoreList");
+      scoreList.innerHTML = "";
+      Object.entries(result.scores).forEach(([key, value]) => {
+        const row = document.createElement("div");
+        row.className = "score-row";
+        row.innerHTML = `
+          <span>${labels[key]}</span>
+          <div class="bar"><div class="fill" style="width:${value}%; background:${color}"></div></div>
+          <strong>${value}</strong>
+        `;
+        scoreList.appendChild(row);
+      });
+
+      const chips = document.getElementById("issueChips");
+      chips.innerHTML = "";
+      const items = result.issues.length ? result.issues : ["no_obvious_issue"];
+      items.concat(result.needs.map(item => `need:${item}`)).forEach(item => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = item;
+        chips.appendChild(chip);
+      });
+    }
+
+    function currentResult() {
+      return evaluateCase(document.getElementById("questionInput").value.trim(), document.getElementById("replyInput").value.trim());
+    }
+
+    function scoreCurrent() {
+      renderScore(currentResult());
+    }
+
+    function loadSample(index) {
+      const sample = samples[index];
+      document.getElementById("questionInput").value = sample.user_question;
+      document.getElementById("replyInput").value = sample.auto_reply;
+      scoreCurrent();
+    }
+
+    function renderSummary(batch) {
+      const avg = Math.round(batch.reduce((sum, row) => sum + row.result.overall, 0) / batch.length * 10) / 10;
+      const counts = batch.reduce((acc, row) => {
+        acc[row.result.decision] = (acc[row.result.decision] || 0) + 1;
+        return acc;
+      }, {});
+      const worst = batch.slice().sort((a, b) => a.result.overall - b.result.overall).slice(0, 3).map(row => row.id).join("、");
+      const issueCount = batch.reduce((sum, row) => sum + row.result.issues.length, 0);
+      const cards = [
+        ["整体平均分", avg, "20 条样例批量质检"],
+        ["放行分布", `fail ${counts.fail || 0}`, `needs_review ${counts.needs_review || 0} / pass ${counts.pass || 0}`],
+        ["最低分 case", worst, "优先人工复盘"],
+        ["风险标签数", issueCount, "自动识别的问题类型"]
+      ];
+      const grid = document.getElementById("summaryGrid");
+      grid.innerHTML = "";
+      cards.forEach(([label, value, hint]) => {
+        const card = document.createElement("div");
+        card.className = "metric";
+        card.innerHTML = `<div class="label">${label}</div><div class="value">${value}</div><div class="hint">${hint}</div>`;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderBatch() {
+      const batch = samples.map(sample => ({ ...sample, result: evaluateCase(sample.user_question, sample.auto_reply) }));
+      renderSummary(batch);
+      const body = document.getElementById("batchBody");
+      body.innerHTML = "";
+      batch.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="mono">${row.id}</td>
+          <td><strong>${row.result.overall}</strong></td>
+          <td><span class="decision ${row.result.decision}">${row.result.decision}</span></td>
+          <td>${row.user_question}</td>
+          <td>${row.result.issues.join("、") || "none"}</td>
+          <td>${row.result.reason}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function init() {
+      const select = document.getElementById("caseSelect");
+      samples.forEach((sample, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = `${sample.id}：${sample.user_question}`;
+        select.appendChild(option);
+      });
+      select.addEventListener("change", event => loadSample(Number(event.target.value)));
+      document.getElementById("scoreButton").addEventListener("click", scoreCurrent);
+      document.getElementById("resetButton").addEventListener("click", () => loadSample(Number(select.value)));
+      document.getElementById("clearButton").addEventListener("click", () => {
+        document.getElementById("questionInput").value = "";
+        document.getElementById("replyInput").value = "";
+        scoreCurrent();
+      });
+      renderBatch();
+      loadSample(0);
+    }
+
+    init();
+  </script>
+</body>
+</html>

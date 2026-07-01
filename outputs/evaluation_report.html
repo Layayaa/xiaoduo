@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>客服自动回复质量评估报告</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: #1f2937;
+      margin: 32px auto;
+      max-width: 1240px;
+      line-height: 1.62;
+      background: #f8fafc;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.25; }
+    h1 { font-size: 30px; }
+    h2 { margin-top: 32px; border-bottom: 1px solid #d1d5db; padding-bottom: 8px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 16px 0 24px;
+      background: #ffffff;
+      font-size: 13px;
+    }
+    th, td { border: 1px solid #d1d5db; padding: 8px 9px; vertical-align: top; }
+    th { background: #e5e7eb; text-align: left; }
+    p { background: #ffffff; margin: 0 0 8px; padding: 8px 10px; }
+    .bullet { border-left: 3px solid #2563eb; }
+  </style>
+</head>
+<body>
+<h1>客服自动回复质量评估报告</h1>
+<h2>1. 方法边界</h2>
+<p class="bullet">- 评分阶段只使用 `user_question` 和 `auto_reply`，不读取人工参考答案。</p>
+<p class="bullet">- `human_ref.json` 只在评分完成后用于 validation，检查自动评估发现的问题是否接近人工标注。</p>
+<p class="bullet">- 默认模式是离线 mock judge，适合复现；线上可替换为 LLM-as-judge，但仍应保持同样的数据隔离。</p>
+<h2>2. 整体结论</h2>
+<p class="bullet">- 样本数：20 条</p>
+<p class="bullet">- 整体平均分：59.0 / 100</p>
+<p class="bullet">- 最低/最高分：35 / 77</p>
+<p class="bullet">- 放行决策分布：{&quot;fail&quot;: 15, &quot;needs_review&quot;: 5}</p>
+<p class="bullet">- 判断：当前自动回复可覆盖部分规则清晰的低风险问题，但凡涉及订单、物流、商品参数、投诉情绪和账号安全，都应保留人工兜底或强制追问。</p>
+<h2>3. 指标分布</h2>
+<table>
+<tr><th>metric</th><th>avg</th><th>min</th><th>max</th><th>distribution</th></tr>
+<tr><td>problem_fit</td><td>65.0</td><td>40</td><td>80</td><td>&lt;65 人工兜底: 10, 80-100 可自动放行: 10</td></tr>
+<tr><td>resolution_helpfulness</td><td>43.0</td><td>20</td><td>80</td><td>&lt;65 人工兜底: 18, 80-100 可自动放行: 2</td></tr>
+<tr><td>context_awareness</td><td>74.0</td><td>40</td><td>80</td><td>80-100 可自动放行: 16, &lt;65 人工兜底: 4</td></tr>
+<tr><td>tone_empathy</td><td>59.0</td><td>40</td><td>80</td><td>&lt;65 人工兜底: 16, 80-100 可自动放行: 4</td></tr>
+<tr><td>automation_readiness</td><td>56.0</td><td>20</td><td>80</td><td>&lt;65 人工兜底: 16, 80-100 可自动放行: 4</td></tr>
+<tr><td>overall</td><td>59.0</td><td>35</td><td>77</td><td>&lt;65 人工兜底: 15, 65-79 需抽检优化: 5</td></tr>
+</table>
+<h2>4. 逐条评分</h2>
+<table>
+<tr><th>case_id</th><th>overall</th><th>decision</th><th>problem_fit</th><th>resolution_helpfulness</th><th>context_awareness</th><th>tone_empathy</th><th>automation_readiness</th><th>auto_issue_types</th></tr>
+<tr><td>case_01</td><td>51</td><td>fail</td><td>40</td><td>40</td><td>80</td><td>60</td><td>40</td><td>generic_answer、missing_clarification、no_lookup、push_to_user</td></tr>
+<tr><td>case_02</td><td>56</td><td>fail</td><td>60</td><td>40</td><td>80</td><td>40</td><td>60</td><td>generic_answer、push_to_user</td></tr>
+<tr><td>case_03</td><td>35</td><td>fail</td><td>40</td><td>20</td><td>40</td><td>40</td><td>40</td><td>generic_answer、missing_clarification、no_lookup、push_to_user</td></tr>
+<tr><td>case_04</td><td>67</td><td>needs_review</td><td>80</td><td>40</td><td>80</td><td>80</td><td>60</td><td>push_to_user</td></tr>
+<tr><td>case_05</td><td>51</td><td>fail</td><td>40</td><td>60</td><td>40</td><td>80</td><td>40</td><td>missing_clarification、no_lookup</td></tr>
+<tr><td>case_06</td><td>55</td><td>fail</td><td>60</td><td>40</td><td>60</td><td>60</td><td>60</td><td>generic_answer、push_to_user</td></tr>
+<tr><td>case_07</td><td>69</td><td>needs_review</td><td>60</td><td>80</td><td>80</td><td>40</td><td>80</td><td>generic_answer、weak_empathy</td></tr>
+<tr><td>case_08</td><td>64</td><td>fail</td><td>80</td><td>40</td><td>80</td><td>60</td><td>60</td><td>push_to_user</td></tr>
+<tr><td>case_09</td><td>43</td><td>fail</td><td>40</td><td>20</td><td>80</td><td>40</td><td>40</td><td>generic_answer、missing_clarification、no_lookup、push_to_user</td></tr>
+<tr><td>case_10</td><td>72</td><td>needs_review</td><td>80</td><td>60</td><td>80</td><td>60</td><td>80</td><td>none</td></tr>
+<tr><td>case_11</td><td>64</td><td>fail</td><td>80</td><td>40</td><td>80</td><td>60</td><td>60</td><td>push_to_user</td></tr>
+<tr><td>case_12</td><td>61</td><td>fail</td><td>80</td><td>40</td><td>80</td><td>40</td><td>60</td><td>push_to_user</td></tr>
+<tr><td>case_13</td><td>67</td><td>needs_review</td><td>80</td><td>40</td><td>80</td><td>60</td><td>80</td><td>none</td></tr>
+<tr><td>case_14</td><td>63</td><td>fail</td><td>80</td><td>40</td><td>60</td><td>80</td><td>60</td><td>none</td></tr>
+<tr><td>case_15</td><td>61</td><td>fail</td><td>80</td><td>40</td><td>80</td><td>60</td><td>40</td><td>missing_clarification</td></tr>
+<tr><td>case_16</td><td>64</td><td>fail</td><td>80</td><td>40</td><td>80</td><td>60</td><td>60</td><td>push_to_user</td></tr>
+<tr><td>case_17</td><td>77</td><td>needs_review</td><td>80</td><td>80</td><td>80</td><td>60</td><td>80</td><td>none</td></tr>
+<tr><td>case_18</td><td>43</td><td>fail</td><td>40</td><td>20</td><td>80</td><td>60</td><td>20</td><td>missing_clarification、no_lookup、push_to_user</td></tr>
+<tr><td>case_19</td><td>54</td><td>fail</td><td>60</td><td>20</td><td>80</td><td>60</td><td>60</td><td>generic_answer、missing_clarification、no_lookup</td></tr>
+<tr><td>case_20</td><td>64</td><td>fail</td><td>60</td><td>60</td><td>80</td><td>80</td><td>40</td><td>missing_clarification、no_lookup、push_to_user</td></tr>
+</table>
+<h2>5. 最差 3 条 case</h2>
+<h3>case_03 | overall=35 | fail</h3>
+<p class="bullet">- 用户问题：退款什么时候能到账</p>
+<p class="bullet">- 自动回复：退款到账时间取决于退款方式和银行处理速度。一般情况下：原路退回（支付宝/微信）1-3个工作日，银行卡退款3-7个工作日，信用卡退款5-15个工作日。您可以在订单详情页查看退款进度。如果超时未到账，请联系客服。</p>
+<p class="bullet">- 自动评估原因：需要核实的信息未覆盖：需要订单/售后状态核实；回复偏自助说明，把操作负担留给用户；回复偏通用解释，缺少针对当前 case 的判断</p>
+<p class="bullet">- 自动识别问题：generic_answer、missing_clarification、no_lookup、push_to_user</p>
+<p class="bullet">- 人工标注问题类型（仅验证用）：generic_answer、missing_clarification、no_lookup</p>
+<p class="bullet">- 人工分析（仅验证用）：用户问的是&#x27;我的退款&#x27;，是个具体问题，需要查具体订单。自动回复给了通用说明但没有帮用户查实际状态。人工回复会先查订单再给具体信息。自动回复的通用信息本身是准确的。</p>
+<h3>case_09 | overall=43 | fail</h3>
+<p class="bullet">- 用户问题：退货邮费谁出</p>
+<p class="bullet">- 自动回复：退货运费承担规则如下：质量问题导致的退货，运费由商家承担；非质量问题（如不喜欢、买错了等）的退货，运费由买家承担。具体判定标准请参考我们的退换货政策。如有疑问请联系客服。</p>
+<p class="bullet">- 自动评估原因：需要核实的信息未覆盖：需要订单/售后状态核实；回复偏自助说明，把操作负担留给用户；回复偏通用解释，缺少针对当前 case 的判断</p>
+<p class="bullet">- 自动识别问题：generic_answer、missing_clarification、no_lookup、push_to_user</p>
+<p class="bullet">- 人工标注问题类型（仅验证用）：generic_answer、missing_clarification</p>
+<p class="bullet">- 人工分析（仅验证用）：自动回复的规则说明是正确的，但没有追问用户的具体情况来给针对性回答。人工回复会在给出规则后追问具体场景。不过作为自动回复，给出规则本身也有价值。</p>
+<h3>case_18 | overall=43 | fail</h3>
+<p class="bullet">- 用户问题：那个扫地机器人用了两周就不工作了</p>
+<p class="bullet">- 自动回复：抱歉给您带来不便。扫地机器人使用两周就出现故障，属于质量问题。您的订单在30天质保期内，可以选择退货退款或者换新。请按照退货地址寄回商品，退货运费由我们承担。如有其他问题请联系客服。</p>
+<p class="bullet">- 自动评估原因：需要核实的信息未覆盖：需要投诉安抚和人工兜底；回复偏自助说明，把操作负担留给用户</p>
+<p class="bullet">- 自动识别问题：missing_clarification、no_lookup、push_to_user</p>
+<p class="bullet">- 人工标注问题类型（仅验证用）：missing_clarification</p>
+<p class="bullet">- 人工分析（仅验证用）：自动回复基本正确，给出了质保期信息和解决方案。但人工回复会先追问用户倾向哪种方案再操作，自动回复没有做这一步确认。整体来说自动回复质量尚可。</p>
+<h2>6. 使用 human_ref 的验证结果</h2>
+<p class="bullet">- case 级命中率：0.65（自动评估识别到至少一个人工问题类型的比例）</p>
+<p class="bullet">- 人工问题类型召回率：0.444</p>
+<p class="bullet">- 自动最低 5 条与人工负面 case 重合：case_01, case_03, case_05, case_09, case_18</p>
+<table>
+<tr><th>case_id</th><th>overall</th><th>auto issues</th><th>human issues</th><th>matched</th><th>missed</th></tr>
+<tr><td>case_01</td><td>51</td><td>generic_answer、missing_clarification、no_lookup、push_to_user</td><td>missing_clarification、push_to_user</td><td>missing_clarification、push_to_user</td><td>none</td></tr>
+<tr><td>case_02</td><td>56</td><td>generic_answer、push_to_user</td><td>generic_answer、no_lookup、push_to_user</td><td>generic_answer、push_to_user</td><td>no_lookup</td></tr>
+<tr><td>case_03</td><td>35</td><td>generic_answer、missing_clarification、no_lookup、push_to_user</td><td>generic_answer、missing_clarification、no_lookup</td><td>generic_answer、missing_clarification、no_lookup</td><td>none</td></tr>
+<tr><td>case_04</td><td>67</td><td>push_to_user</td><td>no_lookup、push_to_user</td><td>push_to_user</td><td>no_lookup</td></tr>
+<tr><td>case_05</td><td>51</td><td>missing_clarification、no_lookup</td><td>missing_clarification、push_to_user、weak_empathy</td><td>missing_clarification</td><td>push_to_user、weak_empathy</td></tr>
+<tr><td>case_06</td><td>55</td><td>generic_answer、push_to_user</td><td>generic_answer、missing_clarification、no_lookup</td><td>generic_answer</td><td>missing_clarification、no_lookup</td></tr>
+<tr><td>case_07</td><td>69</td><td>generic_answer、weak_empathy</td><td>missing_clarification、no_lookup、push_to_user、weak_empathy</td><td>weak_empathy</td><td>missing_clarification、no_lookup、push_to_user</td></tr>
+<tr><td>case_08</td><td>64</td><td>push_to_user</td><td>push_to_user</td><td>push_to_user</td><td>none</td></tr>
+<tr><td>case_09</td><td>43</td><td>generic_answer、missing_clarification、no_lookup、push_to_user</td><td>generic_answer、missing_clarification</td><td>generic_answer、missing_clarification</td><td>none</td></tr>
+<tr><td>case_10</td><td>72</td><td>none</td><td>missing_clarification、push_to_user</td><td>none</td><td>missing_clarification、push_to_user</td></tr>
+<tr><td>case_11</td><td>64</td><td>push_to_user</td><td>generic_answer、missing_clarification</td><td>none</td><td>generic_answer、missing_clarification</td></tr>
+<tr><td>case_12</td><td>61</td><td>push_to_user</td><td>generic_answer、missing_clarification、no_lookup</td><td>none</td><td>generic_answer、missing_clarification、no_lookup</td></tr>
+<tr><td>case_13</td><td>67</td><td>none</td><td>missing_clarification、no_lookup、push_to_user</td><td>none</td><td>missing_clarification、no_lookup、push_to_user</td></tr>
+<tr><td>case_14</td><td>63</td><td>none</td><td>missing_clarification</td><td>none</td><td>missing_clarification</td></tr>
+<tr><td>case_15</td><td>61</td><td>missing_clarification</td><td>weak_empathy</td><td>none</td><td>weak_empathy</td></tr>
+<tr><td>case_16</td><td>64</td><td>push_to_user</td><td>missing_clarification、push_to_user</td><td>push_to_user</td><td>missing_clarification</td></tr>
+<tr><td>case_17</td><td>77</td><td>none</td><td>missing_clarification、push_to_user</td><td>none</td><td>missing_clarification、push_to_user</td></tr>
+<tr><td>case_18</td><td>43</td><td>missing_clarification、no_lookup、push_to_user</td><td>missing_clarification</td><td>missing_clarification</td><td>none</td></tr>
+<tr><td>case_19</td><td>54</td><td>generic_answer、missing_clarification、no_lookup</td><td>generic_answer、missing_clarification、no_lookup</td><td>generic_answer、missing_clarification、no_lookup</td><td>none</td></tr>
+<tr><td>case_20</td><td>64</td><td>missing_clarification、no_lookup、push_to_user</td><td>missing_clarification、weak_empathy</td><td>missing_clarification</td><td>weak_empathy</td></tr>
+</table>
+<h2>7. 业务要求原文</h2>
+<h1>自动回复质量评估标准</h1>
+<h2>业务方原始需求（原文）</h2>
+<p>&gt; &quot;我们上了一个自动回复功能，现在想看看回复质量怎么样。</p>
+<p>&gt; 要求就是：回复要**准确**、**有用**、**语气好**，**不能瞎编**。</p>
+<p>&gt; 具体怎么评估你们自己看着办吧，反正要能说明白哪些回复好、哪些不好。&quot;</p>
+<h2>补充背景</h2>
+<p class="bullet">- 自动回复功能上线两周，覆盖在线客服场景</p>
+<p class="bullet">- 目前还没有评估机制，不确定整体质量水平</p>
+<p class="bullet">- 评估结果会用于：决定是否继续扩大自动回复的覆盖范围</p>
+<p class="bullet">- 如果评估方法靠谱，后续会做成定期跑的自动化流程</p>
+<h2>你需要回答的问题</h2>
+<p>1. &quot;准确&quot;是什么意思？怎么量化？</p>
+<p>2. &quot;有用&quot;是什么意思？怎么量化？</p>
+<p>3. &quot;语气好&quot;是什么意思？怎么量化？</p>
+<p>4. &quot;不瞎编&quot;是什么意思？怎么量化？</p>
+<p>5. 这些指标之间有优先级吗？如果有，怎么排？</p>
+<p>6. 你的评估方法有哪些局限性？哪些 case 可能评不准？</p>
+</body>
+</html>
